@@ -25,12 +25,11 @@ class GeneticAlgorithm:
         self.d_max, self.t_max, self.c_max = self.estimate_normalization_constants(self.population)
 
     def get_edge_data(self, u, v, k):
-        # Extrae la fila correspondiente del GeoDataFrame
         match = self.edges_gdf[
             (self.edges_gdf['u'] == u) &
             (self.edges_gdf['v'] == v) &
             (self.edges_gdf['key'] == k)
-            ]
+        ]
         if not match.empty:
             return match.iloc[0].to_dict()
         else:
@@ -77,20 +76,14 @@ class GeneticAlgorithm:
             if edge.get('in_lez', False):
                 total_Ph += penalty_hard
 
-            # Penalización suave
             Ps = 0
-
-            # ---------------- Tipo de vía ----------------
             road_type = edge.get('highway_clean', 'unknown')
-
-            # Penalización por tipo de vía según su posición en la lista (cuanto más al final, peor)
             if road_type in highway_priority:
                 priority_index = highway_priority.index(road_type)
-                Ps += priority_index / len(highway_priority)  # valor entre 0 y 1
+                Ps += priority_index / len(highway_priority)
             else:
-                Ps += 1  # penaliza fuerte si no está en la lista
+                Ps += 1
 
-            # ---------------- Carriles ----------------
             lanes = edge.get('lanes', '1')
             try:
                 lanes = int(str(lanes).split(';')[0])
@@ -99,7 +92,6 @@ class GeneticAlgorithm:
             except:
                 Ps += 1
 
-            # ---------------- Velocidad baja ----------------
             speed = edge.get('speed_kph', 50)
             try:
                 speed = float(speed[0]) if isinstance(speed, list) else float(speed)
@@ -108,7 +100,6 @@ class GeneticAlgorithm:
             except:
                 Ps += 1
 
-            # Penalización total cuadrada para castigar acumulaciones
             total_Ps += Ps ** 2
 
         d_norm = total_d / self.d_max
@@ -132,70 +123,39 @@ class GeneticAlgorithm:
         return max_d, max_t, max_c
 
     def selection(self, k=3, p=0.8):
-        """
-        Selección por torneo estocástico.
-        De k individuos al azar, elige al mejor con probabilidad p, y a otro con 1-p.
-
-        Args:
-            k (int): número de individuos en el torneo.
-            p (float): probabilidad de seleccionar el mejor.
-
-        Returns:
-            Individuo seleccionado (una ruta).
-        """
-        # Seleccionar k rutas aleatorias
         selected = random.sample(self.population, k)
-
-        # Ordenar por fitness (menor = mejor)
         selected.sort(key=lambda route: self.evaluate_route(route))
-
-        # Con probabilidad p, elegimos el mejor
         if random.random() < p:
             return selected[0]
         else:
-            # Con 1-p, elegimos aleatoriamente uno de los otros
             return random.choice(selected[1:])
 
     def crossover(self, parent1, parent2):
-        """
-        Sequential Constructive Crossover (SCX):
-        Construye una nueva ruta paso a paso eligiendo nodos de parent1 y parent2
-        según accesibilidad y menor coste (distancia).
-        """
         current = self.source
         visited = set([current])
         child = [current]
 
         while current != self.target:
-            # Siguientes nodos propuestos por los padres
             next1 = self._get_next_in_parent(current, parent1, visited)
             next2 = self._get_next_in_parent(current, parent2, visited)
 
             candidates = []
             if next1 and self.graph.has_edge(current, next1):
-                candidates.append((next1, self.graph[current][next1][0].get('length', float('inf'))))
+                candidates.append((next1, self.get_edge_data(current, next1, list(self.graph[current][next1].keys())[0]).get('length', float('inf'))))
             if next2 and self.graph.has_edge(current, next2):
-                candidates.append((next2, self.graph[current][next2][0].get('length', float('inf'))))
+                candidates.append((next2, self.get_edge_data(current, next2, list(self.graph[current][next2].keys())[0]).get('length', float('inf'))))
 
             if not candidates:
-                break  # no se puede continuar
+                break
 
-            # Elegir el siguiente nodo con menor coste (distancia)
             next_node = min(candidates, key=lambda x: x[1])[0]
             child.append(next_node)
             visited.add(next_node)
             current = next_node
 
-        # Validar que termina en el target
-        if current == self.target:
-            return child
-        else:
-            return parent1.copy()  # fallback si falla
+        return child if current == self.target else parent1.copy()
 
     def _get_next_in_parent(self, current_node, parent, visited):
-        """
-        Busca el siguiente nodo en el padre que aún no ha sido visitado.
-        """
         try:
             idx = parent.index(current_node)
             for next_node in parent[idx + 1:]:
@@ -206,73 +166,42 @@ class GeneticAlgorithm:
         return None
 
     def mutate(self, route, max_attempts=10):
-        """
-        Mutación por intercambio (Swap Mutation).
-        Intercambia dos nodos intermedios y repara si es necesario.
-
-        Args:
-            route (list): Ruta como lista de nodos.
-
-        Returns:
-            list: Nueva ruta mutada (o la original si no es válida tras varios intentos).
-        """
         for _ in range(max_attempts):
             mutated = route.copy()
-
             if len(mutated) <= 3:
-                return mutated  # nada que mutar
-
-            # Elegimos dos posiciones internas al azar (excluye source y target)
+                return mutated
             i, j = sorted(random.sample(range(1, len(mutated) - 1), 2))
             mutated[i], mutated[j] = mutated[j], mutated[i]
-
             try:
-                # Validar reconstruyendo aristas
                 self.build_edge_route(mutated)
-                return mutated  # si no lanza error, es válida
+                return mutated
             except:
-                continue  # intenta otra vez
-
-        return route  # si ninguna mutación es válida, devuelve original
+                continue
+        return route
 
     def evolve(self, generations=50, elitism=True):
         for _ in range(generations):
             new_population = []
-
-            # Elitismo: conservar el mejor de la generación anterior
             if elitism:
-                elite = min(self.population,
-                            key=lambda route: self.evaluate_route(route))
+                elite = min(self.population, key=lambda route: self.evaluate_route(route))
                 new_population.append(elite)
-
-            # Generar el resto de la nueva población
             while len(new_population) < self.population_size:
                 parent1 = self.selection()
                 parent2 = self.selection()
-
                 if random.random() < self.crossover_rate:
-                    # Convertimos rutas de aristas a listas de nodos para SCX
                     parent1_nodes = [u for u, v, k in parent1] + [parent1[-1][1]]
                     parent2_nodes = [u for u, v, k in parent2] + [parent2[-1][1]]
                     child_nodes = self.crossover(parent1_nodes, parent2_nodes)
                 else:
-                    # Copia de nodos directamente
                     child_nodes = [u for u, v, k in parent1] + [parent1[-1][1]]
-
                 try:
                     child = self.build_edge_route(child_nodes)
                 except ValueError:
-                    continue  # si no es válido, saltamos este hijo
-
-                # Mutación con probabilidad
+                    continue
                 if random.random() < self.mutation_rate:
                     child = self.mutate(child)
-
                 new_population.append(child)
-
             self.population = new_population
-
-        # Devolver el mejor individuo encontrado
         return min(self.population, key=lambda route: self.evaluate_route(route))
 
     def build_edge_route(self, node_list: list) -> list:
@@ -285,7 +214,3 @@ class GeneticAlgorithm:
             k = keys[0]
             edge_route.append((u, v, k))
         return edge_route
-
-
-
-
