@@ -90,6 +90,10 @@ if __name__ == "__main__":
         axis=1
     )
 
+    # Guardar la columna original para luego hacer plots de las rutas
+    nodes["geometry_wkt"] = nodes["geometry"].apply(lambda g: g.wkt)
+    edges["geometry_wkt"] = edges["geometry"].apply(lambda g: g.wkt)
+
     # Limpiar columnas no necesarias
     nodes["geometry"] = nodes["geometry"].apply(lambda g: g.wkt)
     edges["geometry"] = edges["geometry"].apply(lambda g: g.wkt)
@@ -99,13 +103,10 @@ if __name__ == "__main__":
     nodes = nodes[["osmid", "x", "y", "lez", "highway", "geometry"]].copy()
     edges = edges[[
         "u", "v", "key", "osmid", "length", "speed_kph", "travel_time",
-        "highway_clean", "fuel_consumption", "geometry", "lanes", "name"
+        "highway_clean", "fuel_consumption", "geometry", "lanes", "name",
+        "oneway"
     ]].copy()
 
     # Guardar como JSON (newline-delimited)
     nodes.to_json("nodes_clean.json", orient="records", lines=False)
     edges.to_json("edges_clean.json", orient="records", lines=False)
-
-    print("✔ Grafo original guardado como madrid.graphml")
-    print("✔ Nodos limpios guardados como nodes_clean.json")
-    print("✔ Aristas limpias guardadas como edges_clean.json")

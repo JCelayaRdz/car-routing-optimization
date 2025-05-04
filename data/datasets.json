@@ -1,0 +1,178 @@
+[
+    {
+        "id": 1,
+        "origin_node": {
+            "osmid": "25552320",
+            "x": -3.6642171,
+            "y": 40.4302815,
+            "name": "Calle de Alcal\u00e1"
+        },
+        "destination_node": {
+            "osmid": "996184096",
+            "x": -3.6692297,
+            "y": 40.4255975,
+            "name": "Calle de Hermosilla"
+        },
+        "vehicle_allowed_in_lez": true
+    },
+    {
+        "id": 2,
+        "origin_node": {
+            "osmid": "29739616",
+            "x": -3.6835971,
+            "y": 40.4315582,
+            "name": "Calle de Vel\u00e1zquez"
+        },
+        "destination_node": {
+            "osmid": "1505184330",
+            "x": -3.680116,
+            "y": 40.4250014,
+            "name": "Calle de Goya"
+        },
+        "vehicle_allowed_in_lez": true
+    },
+    {
+        "id": 3,
+        "origin_node": {
+            "osmid": "25901885",
+            "x": -3.6921443,
+            "y": 40.4224479,
+            "name": "Paseo de Recoletos"
+        },
+        "destination_node": {
+            "osmid": "26066612",
+            "x": -3.7022505,
+            "y": 40.4205788,
+            "name": "Calle de Valverde"
+        },
+        "vehicle_allowed_in_lez": true
+    },
+    {
+        "id": 4,
+        "origin_node": {
+            "osmid": "26067866",
+            "x": -3.7118081,
+            "y": 40.4243672,
+            "name": "Calle de la Princesa"
+        },
+        "destination_node": {
+            "osmid": "25935033",
+            "x": -3.7077323,
+            "y": 40.4297293,
+            "name": "Calle de Alberto Aguilera"
+        },
+        "vehicle_allowed_in_lez": true
+    },
+    {
+        "id": 5,
+        "origin_node": {
+            "osmid": "4154368889",
+            "x": -3.6812442,
+            "y": 40.4214442,
+            "name": "Calle de O'Donnell"
+        },
+        "destination_node": {
+            "osmid": "26487807",
+            "x": -3.6968321,
+            "y": 40.4111894,
+            "name": "Calle de Atocha"
+        },
+        "vehicle_allowed_in_lez": false
+    },
+    {
+        "id": 5,
+        "origin_node": {
+            "osmid": "4154368889",
+            "x": -3.6812442,
+            "y": 40.4214442,
+            "name": "Calle de O'Donnell"
+        },
+        "destination_node": {
+            "osmid": "26487807",
+            "x": -3.6968321,
+            "y": 40.4111894,
+            "name": "Calle de Atocha"
+        },
+        "vehicle_allowed_in_lez": false
+    },
+    {
+        "id": 6,
+        "origin_node": {
+            "osmid": "3423225671",
+            "x": -3.7025227,
+            "y": 40.4054317,
+            "name": "Calle de Miguel Servet"
+        },
+        "destination_node": {
+            "osmid": "256669763",
+            "x": -3.6961546,
+            "y": 40.4074657,
+            "name": "Calle de Argumosa"
+        },
+        "vehicle_allowed_in_lez": true
+    },
+    {
+        "id": 7,
+        "origin_node": {
+            "osmid": "21944037",
+            "x": -3.7041963,
+            "y": 40.4099584,
+            "name": "Calle del Mes\u00f3n de Paredes"
+        },
+        "destination_node": {
+            "osmid": "26494690",
+            "x": -3.7016849,
+            "y": 40.4052173,
+            "name": "Ronda de Valencia"
+        },
+        "vehicle_allowed_in_lez": false
+    },
+    {
+        "id": 8,
+        "origin_node": {
+            "osmid": "26472154",
+            "x": -3.7090859,
+            "y": 40.4104518,
+            "name": "Calle de Toledo"
+        },
+        "destination_node": {
+            "osmid": "26213283",
+            "x": -3.7104857,
+            "y": 40.4155234,
+            "name": "Calle Mayor"
+        },
+        "vehicle_allowed_in_lez": true
+    },
+    {
+        "id": 9,
+        "origin_node": {
+            "osmid": "11172580733",
+            "x": -3.7063342,
+            "y": 40.4307483,
+            "name": "Calle de San Bernardo"
+        },
+        "destination_node": {
+            "osmid": "25906111",
+            "x": -3.6968128,
+            "y": 40.4265715,
+            "name": "Calle de Hortaleza"
+        },
+        "vehicle_allowed_in_lez": false
+    },
+    {
+        "id": 10,
+        "origin_node": {
+            "osmid": "442628204",
+            "x": -3.6852401,
+            "y": 40.4748588,
+            "name": "Calle de Daniel V\u00e1zquez D\u00edaz"
+        },
+        "destination_node": {
+            "osmid": "26493332",
+            "x": -3.6929865,
+            "y": 40.4079817,
+            "name": "Plaza del Emperador Carlos V"
+        },
+        "vehicle_allowed_in_lez": false
+    }
+]
