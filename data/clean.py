@@ -71,6 +71,7 @@ if __name__ == "__main__":
 
     # Añadir etiqueta 'lez' a los nodos
     nodes["lez"] = nodes.geometry.within(lez_polygon)
+    edges["in_lez"] = edges.geometry.intersects(lez_polygon)
 
     # Asegurar que osmid está como columna en nodos
     if "osmid" not in nodes.columns:
