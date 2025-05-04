@@ -5,128 +5,32 @@ import matplotlib.pyplot as plt
 from shapely.ops import unary_union
 import random
 
-
-'''
-Función que toma una lista de nodos [A, B, C, D] y la
-transforma en una lista de aristas: 
-[(A, B, key), (B, C, key), (C, D, key)].
-'''
-
-def build_edge_route(graph: nx.MultiDiGraph, node_list: list) -> list:
-    """
-    Given a list of node IDs, return the corresponding list of edges (u, v, key)
-    if the path is valid and connected. Raises ValueError otherwise.
-
-    Parameters:
-        graph (nx.MultiDiGraph): Road network graph.
-        node_list (list): List of node IDs forming a path.
-
-    Returns:
-        List of (u, v, key) tuples representing the edges in the route.
-    """
-    edge_route = []
-
-    for i in range(len(node_list) - 1):
-        u = node_list[i]
-        v = node_list[i + 1]
-
-        if not graph.has_edge(u, v):
-            raise ValueError(f"No edge between node {u} and {v}, path is not valid.")
-
-        edge_data = graph.get_edge_data(u, v)
-        if not edge_data:
-            raise ValueError(f"Missing edge data between {u} and {v}")
-
-        # There may be multiple edges (MultiGraph), so we take the first one (key=0)
-        first_key = list(edge_data.keys())[0]
-        edge_route.append((u, v, first_key))
-
-    return edge_route
-
-'''
-Funciones de creación de rutas
-'''
-
-def shortest_path(graph, source, target, weight="length"):
-    """
-    Calcula la ruta más corta entre dos nodos según un atributo (e.g., 'length', 'travel_time').
-    """
-    return nx.shortest_path(graph, source=source, target=target, weight=weight)
-
-
-
-def random_valid_route(graph, length=10, max_attempts=100):
-    """
-    Genera una ruta aleatoria válida con una secuencia de nodos conectados.
-
-    Parameters:
-        graph: grafo dirigido (nx.MultiDiGraph)
-        length: longitud deseada de la ruta (en número de nodos)
-        max_attempts: número máximo de intentos antes de rendirse
-
-    Returns:
-        Una lista de nodos representando la ruta, o None si no se encuentra.
-    """
-    nodes = list(graph.nodes)
-
-    for _ in range(max_attempts):
-        path = [random.choice(nodes)]
-        valid = True
-
-        for _ in range(length - 1):
-            neighbors = list(graph.successors(path[-1]))
-            if not neighbors:
-                valid = False
-                break
-            next_node = random.choice(neighbors)
-            path.append(next_node)
-
-        if valid and len(path) == length:
-            return path
-
-    return None  # No se encontró una ruta válida tras max_attempts
-
-
-
-def shortest_path_avoid_lez(graph, source, target, penalty=1000):
-    """
-    Calcula ruta penalizando fuertemente las aristas dentro de zonas LEZ.
-    """
-    G_copy = graph.copy()
-    for u, v, k, data in G_copy.edges(keys=True, data=True):
-        if data.get("in_lez", False):
-            if "travel_time" in data:
-                data["travel_time"] += penalty
-            else:
-                data["length"] += penalty
-    return nx.shortest_path(G_copy, source=source, target=target, weight="travel_time")
-
-
 class GeneticAlgorithm:
-    def __init__(self, graph, source, target, population_size, mutation_rate, crossover_rate):
-        ...
+    def __init__(self, graph, source, target, population_size, mutation_rate, crossover_rate, route_length):
+        self.graph = graph
+        self.source = source
+        self.target = target
+        self.population_size = population_size
+        self.mutation_rate = mutation_rate
+        self.crossover_rate = crossover_rate
+        self.route_length = route_length
+        self.nodes = list(graph.nodes)
+        self.population = self.generate_initial_population()
 
     def generate_initial_population(self):
-        ...
+        population = []
+        while len(population) < self.population_size:
+            route = self.random_valid_route(self.route_length)
+            if route:
+                try:
+                    edge_route = self.build_edge_route(route)
+                    population.append(edge_route)
+                except ValueError:
+                    continue
+        return population
 
-    def evaluate_route(self, graph, edge_route,
-                       d_max=1, t_max=1, c_max=1,
+    def evaluate_route(self, edge_route, d_max=1, t_max=1, c_max=1,
                        penalty_hard=1000, penalty_soft_base=10) -> float:
-        """
-        Evaluates a route composed of a list of edges (u, v, key), returning a fitness value according to the function:
-        fitness = d(r)/d_max + t(r)/t_max + c(r)/c_max + Ph(r) + Ps(r)
-
-        Parameters:
-        - graph: a MultiDiGraph representing the road network.
-        - edge_route: list of tuples (u, v, key) that form a complete route.
-        - d_max, t_max, c_max: maximum values for distance, time, and consumption, used for normalization.
-        - penalty_hard: penalty value applied if the route enters a low-emission zone (LEZ).
-        - penalty_soft_base: base penalty for using less preferred roads (residential, signals, few lanes).
-
-        Returns:
-        - A float representing the total fitness value of the route (lower is better).
-        """
-
         total_d = 0
         total_t = 0
         total_c = 0
@@ -134,16 +38,15 @@ class GeneticAlgorithm:
         total_Ps = 0
 
         for u, v, k in edge_route:
-            edge = graph[u][v][k]
+            edge = self.graph[u][v][k]
             d = edge.get('length', 0)
             speed = edge.get('maxspeed', 50)
             if isinstance(speed, list):
                 speed = float(speed[0])
             speed = float(speed)
 
-            t = d / (speed * 1000 / 60)  # minutos
+            t = d / (speed * 1000 / 60)
 
-            # Consumo estimado
             road_type = edge.get('highway', 'unknown')
             if isinstance(road_type, list):
                 road_type = road_type[0]
@@ -153,11 +56,9 @@ class GeneticAlgorithm:
             elif road_type in ['motorway', 'primary']:
                 base_c *= 0.9
 
-            # Penalización dura (LEZ)
             in_LEZ = edge.get('in_lez', False)
             Ph = penalty_hard if in_LEZ else 0
 
-            # Penalización suave
             Ps = 0
             if road_type in ['residential', 'service']:
                 Ps += 1
@@ -177,21 +78,100 @@ class GeneticAlgorithm:
             total_Ph += Ph
             total_Ps += Ps ** 2
 
-        # Normalización
         d_norm = total_d / d_max
         t_norm = total_t / t_max
         c_norm = total_c / c_max
 
         return d_norm + t_norm + c_norm + total_Ph + total_Ps
 
-    def selection(self):
-        ...
+    def selection(self, k=3):
+        selected = random.sample(self.population, k)
+        selected.sort(key=lambda route: self.evaluate_route(route))
+        return selected[0]
 
     def crossover(self, parent1, parent2):
-        ...
+        nodes1 = [u for u, _, _ in parent1]
+        nodes2 = [u for u, _, _ in parent2]
+        common = list(set(nodes1) & set(nodes2))
+        if not common:
+            return parent1
+        crossover_point = random.choice(common)
+        idx1 = nodes1.index(crossover_point)
+        idx2 = nodes2.index(crossover_point)
+        new_nodes = nodes1[:idx1] + nodes2[idx2:]
+        try:
+            return self.build_edge_route(new_nodes)
+        except ValueError:
+            return parent1
 
     def mutate(self, route):
-        ...
+        if random.random() > self.mutation_rate:
+            return route
+        idx = random.randint(1, len(route) - 2)
+        sub_route = self.random_valid_route(len(route) - idx)
+        if sub_route:
+            try:
+                new_nodes = [route[0][0]] + [v for _, v, _ in route[:idx]] + sub_route
+                return self.build_edge_route(new_nodes)
+            except ValueError:
+                return route
+        return route
 
-    def evolve(self):
-        ...
+    def evolve(self, generations=50):
+        for _ in range(generations):
+            new_population = []
+            while len(new_population) < self.population_size:
+                parent1 = self.selection()
+                parent2 = self.selection()
+                child = self.crossover(parent1, parent2)
+                child = self.mutate(child)
+                new_population.append(child)
+            self.population = new_population
+        return min(self.population, key=lambda route: self.evaluate_route(route))
+
+    def build_edge_route(self, node_list: list) -> list:
+        edge_route = []
+        for i in range(len(node_list) - 1):
+            u = node_list[i]
+            v = node_list[i + 1]
+            if not self.graph.has_edge(u, v):
+                raise ValueError(f"No edge between node {u} and {v}, path is not valid.")
+            edge_data = self.graph.get_edge_data(u, v)
+            if not edge_data:
+                raise ValueError(f"Missing edge data between {u} and {v}")
+            first_key = list(edge_data.keys())[0]
+            edge_route.append((u, v, first_key))
+        return edge_route
+
+    def shortest_path(self, weight="length"):
+        return nx.shortest_path(self.graph, source=self.source, target=self.target, weight=weight)
+
+    def random_valid_route(self, length=10, max_attempts=100):
+        for _ in range(max_attempts):
+            path = [random.choice(self.nodes)]
+            valid = True
+            for _ in range(length - 1):
+                neighbors = list(self.graph.successors(path[-1]))
+                if not neighbors:
+                    valid = False
+                    break
+                next_node = random.choice(neighbors)
+                path.append(next_node)
+            if valid and len(path) == length:
+                return path
+        return None
+
+    def shortest_path_avoid_lez(self, penalty=1000):
+        """
+        Calcula ruta entre self.source y self.target penalizando fuertemente
+        las aristas que cruzan zonas LEZ.
+        """
+        G_copy = self.graph.copy()
+        for u, v, k, data in G_copy.edges(keys=True, data=True):
+            if data.get("in_lez", False):
+                if "travel_time" in data:
+                    data["travel_time"] += penalty
+                else:
+                    data["length"] += penalty
+        return nx.shortest_path(G_copy, source=self.source, target=self.target, weight="travel_time")
+
