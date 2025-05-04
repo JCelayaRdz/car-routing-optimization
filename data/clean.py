@@ -90,10 +90,6 @@ if __name__ == "__main__":
         axis=1
     )
 
-    # Guardar la columna original para luego hacer plots de las rutas
-    nodes["geometry_wkt"] = nodes["geometry"].apply(lambda g: g.wkt)
-    edges["geometry_wkt"] = edges["geometry"].apply(lambda g: g.wkt)
-
     # Limpiar columnas no necesarias
     nodes["geometry"] = nodes["geometry"].apply(lambda g: g.wkt)
     edges["geometry"] = edges["geometry"].apply(lambda g: g.wkt)
@@ -104,7 +100,7 @@ if __name__ == "__main__":
     edges = edges[[
         "u", "v", "key", "osmid", "length", "speed_kph", "travel_time",
         "highway_clean", "fuel_consumption", "geometry", "lanes", "name",
-        "oneway"
+        "oneway", "in_lez"
     ]].copy()
 
     # Guardar como JSON (newline-delimited)
