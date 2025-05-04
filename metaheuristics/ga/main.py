@@ -8,7 +8,7 @@ import random
 def main():
     # 1. Cargar grafo preprocesado
     print("Cargando grafo limpio desde archivo...")
-    G = ox.load_graphml("madrid.graphml")
+    G = ox.load_graphml("../../data/madrid.graphml")
 
     # 2. Seleccionar nodos origen y destino
 
@@ -42,8 +42,12 @@ def main():
 
     # 6. Visualizar
     print("Mostrando ruta...")
-    route_nodes = [edge[0] for edge in best_route] + [best_route[-1][1]]
-    ox.plot_graph_route(G, route_nodes, route_linewidth=4, node_size=0)
+    if best_route:
+        route_nodes = [edge[0] for edge in best_route] + [best_route[-1][1]]
+        ox.plot_graph_route(G, route_nodes, route_linewidth=4, node_size=0)
+    else:
+        print("⚠ No se encontró una ruta válida.")
+
 
 if __name__ == "__main__":
     main()

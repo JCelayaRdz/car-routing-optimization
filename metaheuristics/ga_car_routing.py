@@ -107,6 +107,8 @@ class GeneticAlgorithm:
     def mutate(self, route):
         if random.random() > self.mutation_rate:
             return route
+        if len(route) < 3:
+            return route  # muy corta para mutar
         idx = random.randint(1, len(route) - 2)
         sub_route = self.random_valid_route(len(route) - idx)
         if sub_route:
@@ -143,21 +145,19 @@ class GeneticAlgorithm:
             edge_route.append((u, v, first_key))
         return edge_route
 
-    def shortest_path(self, weight="length"):
-        return nx.shortest_path(self.graph, source=self.source, target=self.target, weight=weight)
-
     def random_valid_route(self, length=10, max_attempts=100):
         for _ in range(max_attempts):
-            path = [random.choice(self.nodes)]
+            path = [self.source]
             valid = True
-            for _ in range(length - 1):
+            for _ in range(length - 2):
                 neighbors = list(self.graph.successors(path[-1]))
                 if not neighbors:
                     valid = False
                     break
                 next_node = random.choice(neighbors)
                 path.append(next_node)
-            if valid and len(path) == length:
+            path.append(self.target)
+            if valid:
                 return path
         return None
 
