@@ -85,6 +85,7 @@ if __name__ == "__main__":
     edges["highway_clean"] = edges["highway"].apply(clean_highway)
     edges = edges[edges["highway_clean"].isin(valid_types)].copy()
     edges["length_km"] = edges["length"] / 1000
+
     edges["fuel_consumption"] = edges.apply(
         lambda row: row["length_km"] * calc_avg_fuel_consumption(row["highway_clean"], row["speed_kph"]),
         axis=1
