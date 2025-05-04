@@ -6,9 +6,9 @@ import networkx as nx
 import random
 
 def main():
-    # 1. Descargar el grafo de Madrid
-    print("Cargando grafo de Madrid...")
-    G = ox.graph_from_place("Madrid, Spain", network_type="drive")
+    # 1. Cargar grafo preprocesado
+    print("Cargando grafo limpio desde archivo...")
+    G = ox.load_graphml("madrid.graphml")
 
     # 2. Seleccionar nodos origen y destino
 
