@@ -2,6 +2,13 @@ import networkx as nx
 import random
 import pandas as pd
 
+highway_priority = [
+    "motorway", "motorway_link", "trunk", "trunk_link",
+    "primary", "primary_link", "secondary", "secondary_link",
+    "tertiary", "tertiary_link", "residential", "living_street",
+    "unclassified"
+]
+
 class GeneticAlgorithm:
     def __init__(self, graph, edges_gdf: pd.DataFrame, source, target, population_size, mutation_rate, crossover_rate, route_length):
         self.graph = graph
@@ -70,9 +77,20 @@ class GeneticAlgorithm:
             if edge.get('in_lez', False):
                 total_Ph += penalty_hard
 
+            # Penalización suave
             Ps = 0
-            if edge.get('highway_clean') in ['residential', 'service', 'living_street']:
-                Ps += 1
+
+            # ---------------- Tipo de vía ----------------
+            road_type = edge.get('highway_clean', 'unknown')
+
+            # Penalización por tipo de vía según su posición en la lista (cuanto más al final, peor)
+            if road_type in highway_priority:
+                priority_index = highway_priority.index(road_type)
+                Ps += priority_index / len(highway_priority)  # valor entre 0 y 1
+            else:
+                Ps += 1  # penaliza fuerte si no está en la lista
+
+            # ---------------- Carriles ----------------
             lanes = edge.get('lanes', '1')
             try:
                 lanes = int(str(lanes).split(';')[0])
@@ -80,6 +98,8 @@ class GeneticAlgorithm:
                     Ps += 1
             except:
                 Ps += 1
+
+            # ---------------- Velocidad baja ----------------
             speed = edge.get('speed_kph', 50)
             try:
                 speed = float(speed[0]) if isinstance(speed, list) else float(speed)
@@ -88,6 +108,7 @@ class GeneticAlgorithm:
             except:
                 Ps += 1
 
+            # Penalización total cuadrada para castigar acumulaciones
             total_Ps += Ps ** 2
 
         d_norm = total_d / self.d_max
