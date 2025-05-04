@@ -16,18 +16,41 @@ class GeneticAlgorithm:
         self.route_length = route_length
         self.nodes = list(graph.nodes)
         self.population = self.generate_initial_population()
+        print(f"Generadas {len(self.population)} rutas válidas para población inicial.")
         self.d_max, self.t_max, self.c_max = self.estimate_normalization_constants(self.population)
 
     def generate_initial_population(self):
+        """
+        Genera una población inicial de rutas válidas usando all_simple_paths,
+        recogiendo hasta self.population_size rutas distintas.
+
+        Returns:
+            list: Lista de rutas (cada una es lista de aristas).
+        """
         population = []
-        while len(population) < self.population_size:
-            route = self.random_valid_route(self.route_length)
-            if route:
+        try:
+            path_generator = nx.all_simple_paths(
+                self.graph,
+                self.source,
+                self.target,
+                cutoff=self.route_length
+            )
+            for path in path_generator:
                 try:
-                    edge_route = self.build_edge_route(route)
+                    edge_route = self.build_edge_route(path)
                     population.append(edge_route)
                 except ValueError:
-                    continue
+                    continue  # ignorar si no se puede construir ruta
+
+                if len(population) >= self.population_size:
+                    break  # ya tenemos suficientes
+
+        except nx.NetworkXNoPath:
+            print("No hay ningún camino entre source y target.")
+
+        if len(population) < self.population_size:
+            raise RuntimeError(f" Solo se generaron {len(population)} rutas válidas de {self.population_size}.")
+
         return population
 
     def evaluate_route(self, edge_route, d_max=1, t_max=1, c_max=1,
@@ -163,33 +186,52 @@ class GeneticAlgorithm:
 
     def crossover(self, parent1, parent2):
         """
-        Order Crossover (OX1) para rutas (listas de nodos).
-        Genera un hijo válido sin duplicados.
-
-        Args:
-            parent1 (list): Lista de nodos (ruta)
-            parent2 (list): Lista de nodos (ruta)
-
-        Returns:
-            list: Ruta hija (lista de nodos)
+        Sequential Constructive Crossover (SCX):
+        Construye una nueva ruta paso a paso eligiendo nodos de parent1 y parent2
+        según accesibilidad y menor coste (distancia).
         """
-        size = len(parent1)
+        current = self.source
+        visited = set([current])
+        child = [current]
 
-        # Elegimos dos puntos de corte aleatorios
-        a, b = sorted(random.sample(range(1, size - 1), 2))  # sin incluir source ni target
+        while current != self.target:
+            # Siguientes nodos propuestos por los padres
+            next1 = self._get_next_in_parent(current, parent1, visited)
+            next2 = self._get_next_in_parent(current, parent2, visited)
 
-        # Paso 1: Copiar el segmento central de parent1
-        child = [None] * size
-        child[a:b] = parent1[a:b]
+            candidates = []
+            if next1 and self.graph.has_edge(current, next1):
+                candidates.append((next1, self.graph[current][next1][0].get('length', float('inf'))))
+            if next2 and self.graph.has_edge(current, next2):
+                candidates.append((next2, self.graph[current][next2][0].get('length', float('inf'))))
 
-        # Paso 2: Rellenar con el orden de parent2, saltando duplicados
-        fill_nodes = [node for node in parent2 if node not in child[a:b]]
-        idx = 0
-        for i in list(range(0, a)) + list(range(b, size)):
-            child[i] = fill_nodes[idx]
-            idx += 1
+            if not candidates:
+                break  # no se puede continuar
 
-        return child
+            # Elegir el siguiente nodo con menor coste (distancia)
+            next_node = min(candidates, key=lambda x: x[1])[0]
+            child.append(next_node)
+            visited.add(next_node)
+            current = next_node
+
+        # Validar que termina en el target
+        if current == self.target:
+            return child
+        else:
+            return parent1.copy()  # fallback si falla
+
+    def _get_next_in_parent(self, current_node, parent, visited):
+        """
+        Busca el siguiente nodo en el padre que aún no ha sido visitado.
+        """
+        try:
+            idx = parent.index(current_node)
+            for next_node in parent[idx + 1:]:
+                if next_node not in visited:
+                    return next_node
+        except ValueError:
+            pass
+        return None
 
     def mutate(self, route, max_attempts=10):
         """
@@ -236,11 +278,19 @@ class GeneticAlgorithm:
                 parent1 = self.selection()
                 parent2 = self.selection()
 
-                # Crossover con probabilidad
                 if random.random() < self.crossover_rate:
-                    child = self.crossover(parent1, parent2)
+                    # Convertimos rutas de aristas a listas de nodos para SCX
+                    parent1_nodes = [u for u, v, k in parent1] + [parent1[-1][1]]
+                    parent2_nodes = [u for u, v, k in parent2] + [parent2[-1][1]]
+                    child_nodes = self.crossover(parent1_nodes, parent2_nodes)
                 else:
-                    child = parent1.copy()
+                    # Copia de nodos directamente
+                    child_nodes = [u for u, v, k in parent1] + [parent1[-1][1]]
+
+                try:
+                    child = self.build_edge_route(child_nodes)
+                except ValueError:
+                    continue  # si no es válido, saltamos este hijo
 
                 # Mutación con probabilidad
                 if random.random() < self.mutation_rate:
@@ -267,25 +317,4 @@ class GeneticAlgorithm:
             edge_route.append((u, v, first_key))
         return edge_route
 
-    def random_valid_route(self, max_length=20, max_attempts=100):
-        for _ in range(max_attempts):
-            try:
-                # Usa una búsqueda simple y aleatoria desde source hasta target
-                path = [self.source]
-                current = self.source
-                visited = set()
-                while current != self.target and len(path) < max_length:
-                    neighbors = list(self.graph.successors(current))
-                    neighbors = [n for n in neighbors if n not in visited]  # evita ciclos
-                    if not neighbors:
-                        break
-                    next_node = random.choice(neighbors)
-                    path.append(next_node)
-                    visited.add(current)
-                    current = next_node
-                if current == self.target:
-                    return path
-            except:
-                continue
-        return None
 

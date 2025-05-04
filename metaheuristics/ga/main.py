@@ -4,11 +4,17 @@ import matplotlib.pyplot as plt
 from metaheuristics.ga_car_routing import GeneticAlgorithm
 import networkx as nx
 import random
+import random
+import numpy as np
 
 def main():
+
+    random.seed(42)
+    np.random.seed(42)
+
     # 1. Cargar grafo preprocesado
     grafo_path = "../../data/madrid.graphml"
-    assert os.path.exists(grafo_path), f"⚠ El archivo {grafo_path} no existe."
+    assert os.path.exists(grafo_path), f"El archivo {grafo_path} no existe."
 
     print("Cargando grafo limpio desde archivo...")
     G = ox.load_graphml(grafo_path)
@@ -16,14 +22,21 @@ def main():
     # 2. Seleccionar nodos origen y destino con camino existente
     print("Seleccionando nodos origen y destino...")
     nodes = list(G.nodes)
+    # Elegir nodos con camino corto (máximo 40 nodos de longitud)
     while True:
         source, target = random.sample(nodes, 2)
-        if nx.has_path(G, source, target):
-            break
+        try:
+            path = nx.shortest_path(G, source, target)
+            if len(path) <= 20:
+                break
+        except nx.NetworkXNoPath:
+            continue
+
     print(f"Origen: {source}, Destino: {target}")
 
     # 3. Inicializar el algoritmo genético
     print("Inicializando algoritmo genético...")
+
     ga = GeneticAlgorithm(
         graph=G,
         source=source,
@@ -31,7 +44,7 @@ def main():
         population_size=20,
         mutation_rate=0.3,
         crossover_rate=0.8,
-        route_length=10
+        route_length=20
     )
 
     # 4. Ejecutar evolución
