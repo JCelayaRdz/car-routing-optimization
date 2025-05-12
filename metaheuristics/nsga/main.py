@@ -72,6 +72,7 @@ class NSGAII:
         fronts = []
         domination_count = {}
         dominated_solutions = {}
+        self.non_dominated_rank = [None] * len(population)
 
         for i, p in enumerate(population):
             domination_count[i] = 0
