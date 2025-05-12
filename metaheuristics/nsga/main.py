@@ -149,9 +149,66 @@ class NSGAII:
         return self.population[selected[0]]
 
     def crossover(self, parent1, parent2):
-        # Implement crossover logic (e.g., combine nodes from both parents)
-        pass
+        """
+        Realiza un cruce entre dos rutas (padres) para generar un hijo.
+        Combina nodos de ambos padres asegurando que el hijo sea válido.
+        """
+        current = self.source
+        visited = set([current])
+        child = [current]
 
-    def mutate(self, route):
-        # Implement mutation logic (e.g., swap nodes in the route)
-        pass
+        while current != self.target:
+            # Obtener el siguiente nodo de cada padre
+            next1 = self._get_next_in_parent(current, parent1, visited)
+            next2 = self._get_next_in_parent(current, parent2, visited)
+
+            # Seleccionar el siguiente nodo basado en la distancia
+            candidates = []
+            if next1 and self.graph.has_edge(current, next1):
+                candidates.append((next1, self.get_edge_data(current, next1, list(self.graph[current][next1].keys())[0]).get('length', float('inf'))))
+            if next2 and self.graph.has_edge(current, next2):
+                candidates.append((next2, self.get_edge_data(current, next2, list(self.graph[current][next2].keys())[0]).get('length', float('inf'))))
+
+            if not candidates:
+                break
+
+            # Seleccionar el nodo con la menor distancia
+            next_node = min(candidates, key=lambda x: x[1])[0]
+            child.append(next_node)
+            visited.add(next_node)
+            current = next_node
+
+        # Si no se llega al destino, devolver uno de los padres
+        return child if current == self.target else parent1.copy()
+
+    def _get_next_in_parent(self, current_node, parent, visited):
+        """
+        Obtiene el siguiente nodo en la ruta del padre que no haya sido visitado.
+        """
+        try:
+            idx = parent.index(current_node)
+            for next_node in parent[idx + 1:]:
+                if next_node not in visited:
+                    return next_node
+        except ValueError:
+            pass
+        return None
+
+    def mutate(self, route, max_attempts=10):
+        """
+        Realiza una mutación en una ruta intercambiando dos nodos aleatorios.
+        """
+        for _ in range(max_attempts):
+            mutated = route.copy()
+            if len(mutated) <= 3:  # Si la ruta es muy corta, no mutar
+                return mutated
+            # Seleccionar dos índices aleatorios para intercambiar
+            i, j = sorted(random.sample(range(1, len(mutated) - 1), 2))
+            mutated[i], mutated[j] = mutated[j], mutated[i]
+            try:
+                # Validar que la ruta mutada sea válida
+                self.build_edge_route(mutated)
+                return mutated
+            except ValueError:
+                continue
+        return route
