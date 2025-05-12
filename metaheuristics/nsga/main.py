@@ -33,9 +33,10 @@ class NSGAII:
                     break
         except nx.NetworkXNoPath:
             print("No hay ningún camino entre source y target.")
-        if len(population) < self.population_size:
-            raise RuntimeError(f"Solo se generaron {len(population)} rutas válidas de {self.population_size}.")
+        #if len(population) < self.population_size:
+         #   raise RuntimeError(f" Solo se generaron {len(population)} rutas válidas de {self.population_size}.")
         return population
+
 
     def build_edge_route(self, node_list: List[int]) -> List[Tuple[int, int, int]]:
         edge_route = []
@@ -117,36 +118,58 @@ class NSGAII:
                                  self.evaluate_objectives(population[front[k - 1]])[m])
         return distances
 
-    def evolve(self):
-        for generation in range(self.generations):
-            offspring = self.generate_offspring()
-            combined_population = self.population + offspring
-            fronts = self.non_dominated_sort(combined_population)
+    def evolve(self, generations=50, elitism=True):
+        for _ in range(generations):
             new_population = []
-            for front in fronts:
-                if len(new_population) + len(front) > self.population_size:
-                    distances = self.crowding_distance(front, combined_population)
-                    sorted_front = sorted(zip(front, distances), key=lambda x: x[1], reverse=True)
-                    new_population.extend([combined_population[i] for i, _ in sorted_front[:self.population_size - len(new_population)]])
-                    break
-                new_population.extend([combined_population[i] for i in front])
+            if elitism:
+                elite = min(self.population, key=lambda route: self.evaluate_route(route))
+                new_population.append(elite)
+            while len(new_population) < self.population_size:
+                parent1 = self.selection()
+                parent2 = self.selection()
+                if random.random() < self.crossover_rate:
+                    parent1_nodes = [u for u, v, k in parent1] + [parent1[-1][1]]
+                    parent2_nodes = [u for u, v, k in parent2] + [parent2[-1][1]]
+                    child_nodes = self.crossover(parent1_nodes, parent2_nodes)
+                else:
+                    child_nodes = [u for u, v, k in parent1] + [parent1[-1][1]]
+                try:
+                    child = self.build_edge_route(child_nodes)
+                except ValueError:
+                    continue
+                if random.random() < self.mutation_rate:
+                    child = self.mutate(child)
+                new_population.append(child)
             self.population = new_population
+        return min(self.population, key=lambda route: self.evaluate_route(route))
+
 
     def generate_offspring(self):
         offspring = []
         while len(offspring) < self.population_size:
             parent1 = self.tournament_selection()
             parent2 = self.tournament_selection()
-            child = self.crossover(parent1, parent2)
-            if random.random() < 0.1:  # Mutation probability
-                child = self.mutate(child)
-            offspring.append(child)
+
+            # Crossover (asegúrate de que funcione correctamente con tus objetos)
+            child1, child2 = self.crossover(parent1, parent2)
+
+            # Mutación
+            child1 = self.mutate(child1)
+            child2 = self.mutate(child2)
+
+            offspring.append(child1)
+            if len(offspring) < self.population_size:
+                offspring.append(child2)
+
         return offspring
 
+
     def tournament_selection(self):
-        k = 2
+        k = 2  # Número de participantes en el torneo
+        if len(self.population) < k:
+            raise ValueError(f"La población ({len(self.population)}) es demasiado pequeña para la selección por torneo.")
         selected = random.sample(range(len(self.population)), k)
-        selected.sort(key=lambda i: (self.non_dominated_rank[i], -self.crowding_distance[i]))
+        selected.sort(key=lambda i: (self.non_dominated_rank[i], -self.crowding_distance([i], self.population)[0]))
         return self.population[selected[0]]
 
     def crossover(self, parent1, parent2):
