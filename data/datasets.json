@@ -1,0 +1,82 @@
+[
+    {
+        "id": 1,
+        "origin_node": {
+            "osmid": "26067836",
+            "x": -3.7111798,
+            "y": 40.4232072,
+            "name": "Plaza de España"
+        },
+        "destination_node": {
+            "osmid": "26058808",
+            "x": -3.7031147,
+            "y": 40.4252236,
+            "name": "Calle de Alberto Aguilera"
+        },
+        "vehicle_allowed_in_lez": true
+    },
+    {
+        "id": 2,
+        "origin_node": {
+            "osmid": "21734299",
+            "x": -3.7025992,
+            "y": 40.415804,
+            "name": "Puerta del Sol"
+        },
+        "destination_node": {
+            "osmid": "21990643",
+            "x": -3.7073162,
+            "y": 40.4090896,
+            "name": "Plaza de Cascorro"
+        },
+        "vehicle_allowed_in_lez": true
+    },
+    {
+        "id": 3,
+        "origin_node": {
+            "osmid": "26058808",
+            "x": -3.7031147,
+            "y": 40.4252236,
+            "name": "Calle de San Bernardo"
+        },
+        "destination_node": {
+            "osmid": "25902151",
+            "x": -3.6910407,
+            "y": 40.4294639,
+            "name": "Calle de José Abascal"
+        },
+        "vehicle_allowed_in_lez": false
+    },
+        {
+        "id": 4,
+        "origin_node": {
+            "osmid": "21947310",
+            "x": -3.7032201,
+            "y": 40.4109263,
+            "name": "Calle de Toledo"
+        },
+        "destination_node": {
+            "osmid": "21968143",
+            "x": -3.6984712,
+            "y": 40.4174754,
+            "name": "Calle Mayor"
+        },
+        "vehicle_allowed_in_lez": false
+    },
+    {
+        "id": 5,
+        "origin_node": {
+            "osmid": "25901935",
+            "x": -3.6909553,
+            "y": 40.4251315,
+            "name": "Calle de Génova"
+        },
+        "destination_node": {
+            "osmid": "4692799570",
+            "x": -3.6828911,
+            "y": 40.421428,
+            "name": "Calle de Alcalá"
+        },
+        "vehicle_allowed_in_lez": false
+    }
+]
